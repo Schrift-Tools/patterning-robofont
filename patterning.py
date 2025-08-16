@@ -3,6 +3,7 @@ from mojo.subscriber import (Subscriber, registerGlyphEditorSubscriber,
 from mojo.UI import AskString
 from vanilla import Button
 
+
 class Patterning(Subscriber):
     debug = True
     glyphEditorGlyphDidChangeMetricsDelay = 0.01
@@ -15,8 +16,8 @@ class Patterning(Subscriber):
             clear=True
         )
         self.showButton = Button((-130, 10, 120, 22),
-                               "Show patterning",
-                               callback=self.showButtonCallback)
+                                 "Show patterning",
+                                 callback=self.showButtonCallback)
         self.showButton.getNSButton().setShowsBorderOnlyWhileMouseInside_(True)
         self.glyphEditor.addGlyphEditorSubview(self.showButton)
         self.show = 0
@@ -35,7 +36,8 @@ class Patterning(Subscriber):
 
     def loadUnit(self):
         if 'com.schriftgestaltung.customParameter.GSFontMaster.unitizerUnit' in self.font.lib.keys():
-            unit = int(self.font.lib['com.schriftgestaltung.customParameter.GSFontMaster.unitizerUnit'])
+            unit = int(
+                self.font.lib['com.schriftgestaltung.customParameter.GSFontMaster.unitizerUnit'])
         else:
             unit = None
             self.show = self.show ^ 1
@@ -43,17 +45,19 @@ class Patterning(Subscriber):
         return unit
 
     def drawGrid(self):
-        
+
         self.container.clearSublayers()
 
         if self.left < 0:
             start = (round(self.left / self.unit) - 2) * self.unit
-        else: start = 0
+        else:
+            start = 0
         if self.right < 0:
             end = (round(self.right / self.unit) - 2) * -self.unit
-        else: end = 0
+        else:
+            end = 0
         for x in range(start, self.w+1+end, self.unit):
-        # range(self.descender-self.unit, self.upm-self.descender+self.unit, self.unit):
+            # range(self.descender-self.unit, self.upm-self.descender+self.unit, self.unit):
             self.container.appendLineSublayer(
                 startPoint=(x, self.descender),
                 endPoint=(x, self.upm+self.descender),
@@ -67,6 +71,7 @@ class Patterning(Subscriber):
                     strokeColor=(0, 0, 0, .1),
                     strokeWidth=.5
                 )
+
     def drawInfo(self):
         if (self.w / self.unit) % 1:
             width = "|||" + str(round(self.w / self.unit, 3))
@@ -74,24 +79,24 @@ class Patterning(Subscriber):
         else:
             width = "|||" + str(int(self.w / self.unit))
             color = (0, 0, 0, .5)
-        
+
         if (self.left / self.unit) % 1:
             left = str(round(self.left / self.unit, 3))
         else:
             left = str(self.left // self.unit)
-        
+
         if (self.right / self.unit) % 1:
             right = str(round(self.right / self.unit, 3))
         else:
             right = str(self.right // self.unit)
-        
+
         self.container.appendTextLineSublayer(
             position=(self.w+3, self.upm+self.descender+20),
             pointSize=12,
             fillColor=color,
             text=width
         )
-        
+
         self.container.appendTextLineSublayer(
             position=(-6, -40),
             pointSize=12,
@@ -99,7 +104,7 @@ class Patterning(Subscriber):
             horizontalAlignment="right",
             text=left
         )
-        
+
         self.container.appendTextLineSublayer(
             position=(self.w+6, -40),
             pointSize=12,
@@ -114,7 +119,6 @@ class Patterning(Subscriber):
             self.drawInfo()
         else:
             self.destroy()
-
 
     def showButtonCallback(self, sender):
         self.show = self.show ^ 1
@@ -131,6 +135,7 @@ class Patterning(Subscriber):
 
     def destroy(self):
         self.container.clearSublayers()
+
 
 if __name__ == '__main__':
     registerGlyphEditorSubscriber(Patterning)
