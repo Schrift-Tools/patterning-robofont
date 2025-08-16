@@ -5,6 +5,7 @@ from vanilla import Button
 
 class Patterning(Subscriber):
     debug = True
+    glyphEditorGlyphDidChangeMetricsDelay = 0.01
 
     def build(self):
         self.glyphEditor = self.getGlyphEditor()
@@ -118,8 +119,6 @@ class Patterning(Subscriber):
     def showButtonCallback(self, sender):
         self.show = self.show ^ 1
         self.update()
-    
-    glyphEditorGlyphDidChangeMetricsDelay = 0
 
     def glyphEditorDidScale(self, info):
         self.update()
