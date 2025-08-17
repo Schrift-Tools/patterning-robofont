@@ -131,11 +131,11 @@ class Patterning(Subscriber):
         self.container.clearSublayers()
         baseLayer = self.container.appendBaseSublayer()
 
-        if self.left < 0:
+        if self.left and self.left < 0:
             start = (round(self.left / self.unit) - 2) * self.unit
         else:
             start = 0
-        if self.right < 0:
+        if self.right and self.right < 0:
             end = (round(self.right / self.unit) - 2) * -self.unit
         else:
             end = 0
@@ -168,15 +168,19 @@ class Patterning(Subscriber):
             width = "|||" + str(int(self.w / self.unit))
             color = (0, 0, 0, .5)
 
-        if (self.left / self.unit) % 1:
-            left = str(round(self.left / self.unit, 3))
-        else:
-            left = str(self.left // self.unit)
+        if self.left:
+            if (self.left / self.unit) % 1:
+                left = str(round(self.left / self.unit, 3))
+            else:
+                left = str(self.left // self.unit)
 
-        if (self.right / self.unit) % 1:
-            right = str(round(self.right / self.unit, 3))
+            if (self.right / self.unit) % 1:
+                right = str(round(self.right / self.unit, 3))
+            else:
+                right = str(self.right // self.unit)
         else:
-            right = str(self.right // self.unit)
+            left = ''
+            right = ''
 
         self.container.appendTextLineSublayer(
             position=(self.w+3, self.upm+self.descender+20),
