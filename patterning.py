@@ -25,7 +25,7 @@ class SettingsWindow:
                                     callback=self.unitInputCallback)
         self.w.angleInput = CheckBox("auto",
                                      "Use italic angle",
-                                     value=True,
+                                     value=self.patterning_obj.useAngle,
                                      callback=self.angleInputCallback)
         self.w.okButton = Button("auto",
                                  "OK",
@@ -129,6 +129,7 @@ class Patterning(Subscriber):
     def drawGrid(self):
 
         self.container.clearSublayers()
+        baseLayer = self.container.appendBaseSublayer()
 
         if self.left < 0:
             start = (round(self.left / self.unit) - 2) * self.unit
@@ -140,21 +141,19 @@ class Patterning(Subscriber):
             end = 0
 
         if self.useAngle:
-            self.container.setContainerTransformation(
-                (1.0, 0, tan(radians(self.angle)), 1.0, 100, 100))
+            baseLayer.addSkewTransformation(self.angle)
         else:
-            self.container.setContainerTransformation(
-                (1.0, 0, 0.0, 1.0, 100, 100))
+            baseLayer.addSkewTransformation(0)
 
         for x in range(start, self.w+1+end, self.unit):
-            self.container.appendLineSublayer(
+            baseLayer.appendLineSublayer(
                 startPoint=(x, self.descender),
                 endPoint=(x, self.upm+self.descender),
                 strokeColor=(0, 0, 0, .25),
                 strokeWidth=.8
             )
             if x < self.w + end:
-                self.container.appendLineSublayer(
+                baseLayer.appendLineSublayer(
                     startPoint=(x+self.unit/2, self.descender),
                     endPoint=(x+self.unit/2, self.upm+self.descender),
                     strokeColor=(0, 0, 0, .1),
