@@ -1,7 +1,54 @@
 from mojo.subscriber import (Subscriber, registerGlyphEditorSubscriber,
                              unregisterGlyphEditorSubscriber)
 from mojo.UI import AskString
-from vanilla import Button
+from vanilla import Window, Button, EditText, TextBox, CheckBox
+import AppKit
+
+
+class SettingsWindow:
+
+    def __init__(self, patterning_obj):
+        self.patterning_obj = patterning_obj
+        self.unit = patterning_obj.getUnit()
+        self.w = Window((150, 100))
+        self.w.setTitle('patterning parameters')
+        self.w.bind("close", self.windowClosed)
+        self.w.unitLabel = TextBox("auto", "Unit value")
+        self.w.unitInput = EditText("auto",
+                                    text=self.unit,
+                                    callback=self.unitInputCallback)
+        self.w.okButton = Button("auto",
+                                 "OK",
+                                 callback=self.okButtonCallback)
+        rules = [
+            # Horizontal
+            "H:|-margin-[unitInput]-gutter-[unitLabel]-margin-|",
+            "H:|-margin-[okButton]-margin-|",
+            # Vertical
+            "V:|-margin-[unitInput]-gutter-[okButton]-margin-|",
+            "V:|-margin-[unitLabel]-gutter-[okButton]-margin-|"
+        ]
+        metrics = {
+            "margin": 10,
+            "gutter": 8,
+        }
+        self.w.addAutoPosSizeRules(rules, metrics)
+        self.w.open()
+
+    def okButtonCallback(self, sender):
+        self.w.close()
+
+    def unitInputCallback(self, sender):
+        value = sender.get()
+        if value.isdigit():
+            value = int(value)
+            self.unit = value
+            self.patterning_obj.setUnit(value)
+        else:
+            sender.set(self.unit)
+
+    def windowClosed(self, sender):
+        self.patterning_obj.settingsPan = 0
 
 
 class Patterning(Subscriber):
@@ -10,39 +57,57 @@ class Patterning(Subscriber):
 
     def build(self):
         self.glyphEditor = self.getGlyphEditor()
+        self.font = self.glyphEditor.getGlyph().font
+        self.fontinfo = self.font.info
+
         self.container = self.glyphEditor.extensionContainer(
             identifier="com.SCHF.Patterning.background",
             location="background",
             clear=True
         )
-        self.showButton = Button((-130, 10, 120, 22),
+
+        self.showButton = Button((-160, 10, 120, 22),
                                  "Show patterning",
                                  callback=self.showButtonCallback)
         self.showButton.getNSButton().setShowsBorderOnlyWhileMouseInside_(True)
+        self.showButton.getNSButton().setCornerRadius_(9)
         self.glyphEditor.addGlyphEditorSubview(self.showButton)
+        self.settingsButton = Button((-40, 10, 22, 22),
+                                     "⚙︎",
+                                     callback=self.settingsButtonCallback)
+        self.settingsButton.getNSButton().setShowsBorderOnlyWhileMouseInside_(True)
+        self.glyphEditor.addGlyphEditorSubview(self.settingsButton)
         self.show = 0
+        self.settingsPan = 0
         self.update()
 
-    def loadParams(self):
+    def openSettings(self):
 
-        self.font = self.glyphEditor.getGlyph().font
-        self.fontinfo = self.font.info
-        self.unit = self.loadUnit()
+        return SettingsWindow(patterning_obj=self)
+
+    def loadParams(self):
+        self.unit = self.getUnit()
         self.descender = int(self.fontinfo.descender)
         self.upm = int(self.fontinfo.unitsPerEm)
         self.w = self.glyphEditor.getGlyph().width
         self.left = self.glyphEditor.getGlyph().leftMargin
         self.right = self.glyphEditor.getGlyph().rightMargin
 
-    def loadUnit(self):
-        if 'com.schriftgestaltung.customParameter.GSFontMaster.unitizerUnit' in self.font.lib.keys():
+    def getUnit(self):
+        if 'com.SCHF.PatterningUnit' in self.font.lib.keys():
+            unit = int(
+                self.font.lib['com.SCHF.PatterningUnit'])
+        elif 'com.schriftgestaltung.customParameter.GSFontMaster.unitizerUnit' in self.font.lib.keys():
             unit = int(
                 self.font.lib['com.schriftgestaltung.customParameter.GSFontMaster.unitizerUnit'])
         else:
-            unit = None
-            self.show = self.show ^ 1
-            self.update()
+            unit = 20
+            self.font.lib['com.SCHF.PatterningUnit'] = unit
         return unit
+
+    def setUnit(self, unit):
+        self.font.lib['com.SCHF.PatterningUnit'] = unit
+        self.update()
 
     def drawGrid(self):
 
@@ -57,7 +122,6 @@ class Patterning(Subscriber):
         else:
             end = 0
         for x in range(start, self.w+1+end, self.unit):
-            # range(self.descender-self.unit, self.upm-self.descender+self.unit, self.unit):
             self.container.appendLineSublayer(
                 startPoint=(x, self.descender),
                 endPoint=(x, self.upm+self.descender),
@@ -123,6 +187,13 @@ class Patterning(Subscriber):
     def showButtonCallback(self, sender):
         self.show = self.show ^ 1
         self.update()
+
+    def settingsButtonCallback(self, sender):
+        if self.settingsPan:
+            self.settingsPan.w.close()
+            self.settingsPan = 0
+        else:
+            self.settingsPan = self.openSettings()
 
     def glyphEditorDidScale(self, info):
         self.update()
