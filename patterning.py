@@ -2,6 +2,8 @@ from mojo.subscriber import (Subscriber, registerGlyphEditorSubscriber,
                              unregisterGlyphEditorSubscriber)
 from mojo.UI import AskString
 from vanilla import Window, Button, EditText, TextBox, CheckBox
+from math import tan, radians
+
 import AppKit
 
 
@@ -10,23 +12,32 @@ class SettingsWindow:
     def __init__(self, patterning_obj):
         self.patterning_obj = patterning_obj
         self.unit = patterning_obj.getUnit()
-        self.w = Window((150, 100))
-        self.w.setTitle('patterning parameters')
+        self.w = Window(
+            posSize=(200, 100),
+            title='Patterning Settings',
+            titleVisible=False,
+        )
+        self.w.center()
         self.w.bind("close", self.windowClosed)
         self.w.unitLabel = TextBox("auto", "Unit value")
         self.w.unitInput = EditText("auto",
                                     text=self.unit,
                                     callback=self.unitInputCallback)
+        self.w.angleInput = CheckBox("auto",
+                                     "Use italic angle",
+                                     value=True,
+                                     callback=self.angleInputCallback)
         self.w.okButton = Button("auto",
                                  "OK",
                                  callback=self.okButtonCallback)
         rules = [
             # Horizontal
             "H:|-margin-[unitInput]-gutter-[unitLabel]-margin-|",
+            "H:|-margin-[angleInput]-margin-|",
             "H:|-margin-[okButton]-margin-|",
             # Vertical
-            "V:|-margin-[unitInput]-gutter-[okButton]-margin-|",
-            "V:|-margin-[unitLabel]-gutter-[okButton]-margin-|"
+            "V:|-margin-[unitInput]-gutter-[angleInput]-gutter-[okButton]-margin-|",
+            "V:|-margin-[unitLabel]-gutter-[angleInput]-gutter-[okButton]-margin-|"
         ]
         metrics = {
             "margin": 10,
@@ -37,6 +48,10 @@ class SettingsWindow:
 
     def okButtonCallback(self, sender):
         self.w.close()
+
+    def angleInputCallback(self, sender):
+        self.patterning_obj.useAngle = sender.get()
+        self.patterning_obj.update()
 
     def unitInputCallback(self, sender):
         value = sender.get()
@@ -59,6 +74,7 @@ class Patterning(Subscriber):
         self.glyphEditor = self.getGlyphEditor()
         self.font = self.glyphEditor.getGlyph().font
         self.fontinfo = self.font.info
+        self.useAngle = True
 
         self.container = self.glyphEditor.extensionContainer(
             identifier="com.SCHF.Patterning.background",
@@ -87,6 +103,7 @@ class Patterning(Subscriber):
 
     def loadParams(self):
         self.unit = self.getUnit()
+        self.angle = -self.fontinfo.italicAngle
         self.descender = int(self.fontinfo.descender)
         self.upm = int(self.fontinfo.unitsPerEm)
         self.w = self.glyphEditor.getGlyph().width
@@ -121,6 +138,14 @@ class Patterning(Subscriber):
             end = (round(self.right / self.unit) - 2) * -self.unit
         else:
             end = 0
+
+        if self.useAngle:
+            self.container.setContainerTransformation(
+                (1.0, 0, tan(radians(self.angle)), 1.0, 100, 100))
+        else:
+            self.container.setContainerTransformation(
+                (1.0, 0, 0.0, 1.0, 100, 100))
+
         for x in range(start, self.w+1+end, self.unit):
             self.container.appendLineSublayer(
                 startPoint=(x, self.descender),
